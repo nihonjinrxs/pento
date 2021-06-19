@@ -1,7 +1,7 @@
 defmodule PentoWeb.WrongLive do
   use PentoWeb, :live_view
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     if connected?(socket) do
       # :timer.send_interval(1, :tick)
       :timer.send_interval(1000, :tick)
@@ -15,7 +15,9 @@ defmodule PentoWeb.WrongLive do
         score: 0,
         message: "Guess a number.",
         display_time: time(),
-        won_game: nil
+        won_game: nil,
+        user: Pento.Accounts.get_user_by_session_token(session["user_token"]),
+        session_id: session["live_socket_id"]
       )
     }
   end
@@ -25,6 +27,7 @@ defmodule PentoWeb.WrongLive do
     <h1>Your score: <%= @score %></h1>
     <p>It's <%= @display_time %></p>
     <h2>
+      <p>Welcome, <%= @user.username %>!</p>
       <%= @message %>
       <%= render_button(assigns) %>
     </h2>
@@ -33,6 +36,10 @@ defmodule PentoWeb.WrongLive do
       <a href="#" phx-click="guess", phx-value-number="<%= n %>"><%= n %></a>
       <% end %>
     </h2>
+    <pre>
+      <%= @user.email %>
+      <%= @session_id %>
+    </pre>
     """
   end
 
@@ -42,7 +49,7 @@ defmodule PentoWeb.WrongLive do
       assign(
         socket,
         right_answer: Enum.random(1..10),
-        score: score |> Integer.parse |> elem(0),
+        score: score |> Integer.parse |> elem(0) || 0,
         message: "Guess a number.",
         display_time: time(),
         won_game: nil
@@ -85,9 +92,9 @@ defmodule PentoWeb.WrongLive do
     <%= if @won_game == true do %>
     <p>
       <%= live_patch "Play again?",
-            to: Routes.live_path(
+            to: Routes.page_path(
               @socket,
-              PentoWeb.WrongLive,
+              :guess,
               reset: true,
               score: @score
             )
